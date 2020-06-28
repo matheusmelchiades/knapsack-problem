@@ -1,5 +1,5 @@
 #!/bin/python3
-from random import uniform
+from random import uniform, randint, choices
 
 
 class Settings:
@@ -13,13 +13,13 @@ class Settings:
 
         self.knapsack = {
             'capacity': 10,
-            'weight': (0, 300)
+            'weight': (0, 120)
         }
 
         self.DNA = {
-            'chromosomes': 1000,  # population size
-            'interactions': 80,
-            'generation_interval': 0.6
+            'chromosomes': 500,  # population size
+            'interactions': 800,
+            'generation_interval': 0.3
         }
 
 
@@ -55,8 +55,18 @@ class Knapsack:
         pass
 
     def append_obj(self, obj):
-        self.weight += obj.weight
-        self.objects.append(obj)
+
+        if len(self.objects) < self.capacity:
+            self.weight += obj.weight
+            self.objects.append(obj)
+        pass
+
+    def append_objects(self, objs=[]):
+
+        if len(self.objects) < self.capacity:
+            for o in objs:
+                self.weight += o.weight
+            self.objects = self.objects + objs
         pass
 
     def __str__(self):
@@ -75,6 +85,16 @@ class Knapsack:
             f'\n VALUE  = {v_sum}\n\n'
 
 
+def rand_tuple(max):
+    a = randint(0, max)
+    b = randint(0, max)
+
+    if a == b:
+        b = randint(0, max)
+
+    return (a, b)
+
+
 class DNA:
 
     def __init__(self, settings):
@@ -84,16 +104,16 @@ class DNA:
         self.population = []
 
     def generate_poulation(self):
-        """
+        '''
             Generate news individuals if not exists no one inviduals on populate.
             If has some individuals from last generation, the new generation will receive
             the same and complete rest of the population with randable individuals. 
-        """
+        '''
 
         new_population = []
         population_size = int(self.chromosomes - len(self.population))
 
-        for p in range(0, population_size):
+        for _ in range(0, population_size):
 
             k = Knapsack(self.settings)
 
@@ -107,20 +127,58 @@ class DNA:
         pass
 
     def fitness(self):
-        """
+        '''
             Calculate what invidual is best and sort by best
-        """
+        '''
+
         self.population.sort(key=lambda x: x.weight - x.weight_max)
         pass
 
     def select_bests_parent(self):
+        '''
+            Splice population by score attributed on fitness
+        '''
+
         pop_length = len(self.population)
         percent_decrease = len(self.population) * self.generation_interval
         diff_fractional = int(pop_length - percent_decrease)
         percentual_fractional = int(pop_length - diff_fractional)
-        crossover_size = percentual_fractional if percentual_fractional % 2 == 0 else percentual_fractional - 1
+        crossover_size = percentual_fractional \
+            if percentual_fractional % 2 == 0 \
+            else percentual_fractional - 1
 
         self.population = self.population[:crossover_size]
+        pass
+
+    def crossover(self):
+
+        changed = []
+        parents_size = int(len(self.population) / 2)
+
+        for i in range(0, parents_size):
+
+            a, b = rand_tuple(len(self.population) - 1)
+
+            individual_a = self.population[a]
+            individual_b = self.population[b]
+
+            index_del_a = a if a < (len(self.population) - 1) else -1
+            index_del_b = b if b < (len(self.population) - 1) else -1
+
+            del self.population[index_del_a]
+            del self.population[index_del_b]
+
+            genomes = choices(individual_a.objects + individual_b.objects,
+                              k=self.settings.knapsack['capacity'])
+
+            k = Knapsack(self.settings)
+            k.append_objects(genomes)
+
+            changed.append(k)
+
+            parents_size -= 2
+
+        self.population = changed
         pass
 
     def reproduction(self):
@@ -130,6 +188,9 @@ class DNA:
             self.generate_poulation()
             self.fitness()
             self.select_bests_parent()
+            self.crossover()
+
+        self.population.sort(key=lambda x: x.weight - x.weight_max)
 
         print(self.population[0])
         print('FINISH')
@@ -137,7 +198,7 @@ class DNA:
         return []
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     settings = Settings()
     dna = DNA(settings)
     dna.reproduction()
