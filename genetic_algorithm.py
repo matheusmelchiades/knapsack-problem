@@ -1,5 +1,5 @@
 #!/bin/python3
-from random import uniform, randint, choices
+from random import uniform, randint, choices, randrange
 
 
 class Settings:
@@ -17,9 +17,10 @@ class Settings:
         }
 
         self.DNA = {
-            'chromosomes': 500,  # population size
-            'interactions': 800,
-            'generation_interval': 0.3
+            'chromosomes': 100,  # population size
+            'interactions': 200,
+            'generation_interval': 0.3,
+            'mutation_rate': 0.6
         }
 
 
@@ -85,22 +86,13 @@ class Knapsack:
             f'\n VALUE  = {v_sum}\n\n'
 
 
-def rand_tuple(max):
-    a = randint(0, max)
-    b = randint(0, max)
-
-    if a == b:
-        b = randint(0, max)
-
-    return (a, b)
-
-
 class DNA:
 
     def __init__(self, settings):
         self.settings = settings
         self.chromosomes = settings.DNA['chromosomes']
         self.generation_interval = settings.DNA['generation_interval']
+        self.mutation_rate = settings.DNA['mutation_rate']
         self.population = []
 
     def generate_poulation(self):
@@ -132,6 +124,7 @@ class DNA:
         '''
 
         self.population.sort(key=lambda x: x.weight - x.weight_max)
+
         pass
 
     def select_bests_parent(self):
@@ -156,8 +149,13 @@ class DNA:
         parents_size = int(len(self.population) / 2)
 
         for i in range(0, parents_size):
+            rand_max = int(len(self.population) - 1)
 
-            a, b = rand_tuple(len(self.population) - 1)
+            a = randint(0, rand_max)
+            b = randint(0, rand_max)
+
+            while a == b:
+                b = randint(0, rand_max)
 
             individual_a = self.population[a]
             individual_b = self.population[b]
@@ -181,6 +179,27 @@ class DNA:
         self.population = changed
         pass
 
+    def mutation(self):
+        pop_length = len(self.population)
+        pop_mutation_length = int(pop_length * self.mutation_rate)
+        individuals_choiced = choices(self.population, k=pop_mutation_length)
+
+        for individuals in individuals_choiced:
+            obj_length = len(individuals.objects)
+            genomes_rand_to_change = randint(0, obj_length)
+            indexes_rand = []
+
+            while len(indexes_rand) != genomes_rand_to_change:
+                indexes_rand = [randrange(0, obj_length)
+                                for _ in range(genomes_rand_to_change)]
+
+                indexes_rand = list(set(indexes_rand))
+
+            for i in indexes_rand:
+                individuals.objects[i] = Object(self.settings)
+
+        pass
+
     def reproduction(self):
         interactions = self.settings.DNA['interactions']
 
@@ -189,10 +208,14 @@ class DNA:
             self.fitness()
             self.select_bests_parent()
             self.crossover()
+            self.mutation()
 
         self.population.sort(key=lambda x: x.weight - x.weight_max)
 
-        print(self.population[0])
+        for x in self.population:
+            print(x.weight)
+
+        # print(self.population[0])
         print('FINISH')
 
         return []
