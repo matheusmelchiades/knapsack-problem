@@ -17,11 +17,23 @@ class Settings:
         }
 
         self.DNA = {
-            'chromosomes': 100,  # population size
-            'interactions': 200,
-            'generation_interval': 0.3,
-            'mutation_rate': 0.6
+            'chromosomes': 10,  # population size
+            'interactions': 800,
+            'generation_interval': 0.6,
+            'mutation_rate': 0.3
         }
+
+    def set_knapsack_obj_values(self, values={}):
+        self.knapsack_obj = {**self.knapsack_obj, **values}
+        pass
+
+    def set_knapsack_values(self, values={}):
+        self.knapsack = {**self.knapsack, **values}
+        pass
+
+    def set_dna_values(self, values={}):
+        self.DNA = {**self.DNA, **values}
+        pass
 
 
 class Object:
@@ -212,16 +224,4 @@ class DNA:
 
         self.population.sort(key=lambda x: x.weight - x.weight_max)
 
-        for x in self.population:
-            print(x.weight)
-
-        # print(self.population[0])
-        print('FINISH')
-
         return []
-
-
-if __name__ == '__main__':
-    settings = Settings()
-    dna = DNA(settings)
-    dna.reproduction()

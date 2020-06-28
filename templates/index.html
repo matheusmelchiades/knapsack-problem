@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Knapsack Problem</title>
+    <script
+      src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"
+      integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I="
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+      integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+      crossorigin="anonymous"
+    />
+
+    <!-- PROJECT FILES -->
+    <script type="module" charset="utf-8" src="{{ url_for('static', filename='js/socket.js') }}"></script>
+  </head>
+  <body>
+    <div class="container-fluid row p-2">
+      <div class="col container-fluid border border-primary rounded p-4 ml-3" style="max-width: 400px; max-height: 70vh;">
+        <!-- HEADER  -->
+        <ul class="nav nav-tabs justify-content-center" role="tablist">
+          <li class="nav-item" role="presentation">
+            <a class="nav-link active" id="problem-tab" data-toggle="tab" href="#problem" role="tab" aria-controls="problem" aria-selected="true">
+              Problema
+            </a>
+          </li>
+
+          <li class="nav-item" role="presentation">
+            <a class="nav-link" id="program-tab" data-toggle="tab" href="#program" role="tab" aria-controls="program" aria-selected="false">
+              Programa
+            </a>
+          </li>
+        </ul>
+
+        <form action="" class="needs-validation novalidate mt-4" role="form" method="post">
+          <div class="tab-content">
+            <!-- FORM PROGRAM -->
+            <div class="tab-pane fade show active" id="problem" role="tabpanel" aria-labelledby="problem-tab">
+              <div class="form-row">
+                <div class="col-md-6 mb-3">
+                  <label>Tamanho da população</label>
+                  <input type="number" class="form-control" name="dna_chromosomes" value="0" placeholder="0" aria-describedby="basic-addon1" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="col-md-6 mb-3">
+                  <label>Numero de Interações</label>
+                  <input type="number" class="form-control" name="interactions" value="0" placeholder="0" aria-describedby="basic-addon1" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="col-md-6 mb-3">
+                  <label>Intervalo de geração (%)</label>
+                  <input type="number" class="form-control" name="generation_interval" value="0" placeholder="0" aria-describedby="basic-addon1" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="col-md-6 mb-3">
+                  <label>Taxa de mutação (%)</label>
+                  <input type="number" class="form-control" name="mutation_rate" value="0" placeholder="0" aria-describedby="basic-addon1" />
+                </div>
+              </div>
+            </div>
+
+            <!-- FORM PROBLEM -->
+            <div class="tab-pane fade" id="program" role="tabpanel" aria-labelledby="program-tab">
+              <div class="form-row">
+                <div class="col-md-6 mb-3">
+                  <label>Peso maximo da mochila</label>
+                  <input type="number" class="form-control" name="knapsack_weight" value="0" placeholder="0" aria-describedby="basic-addon1" />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col col-md-6 mb-3">
+                  <label>Peso do objeto</label>
+                  <input type="number" class="form-control" name="object_weight_min" value="0" placeholder="minimo" aria-describedby="basic-addon1" />
+                </div>
+                <div class="col col-md-6 mb-3">
+                  <label>&nbsp;</label>
+                  <input type="number" class="form-control" name="object_weight_max" value="0" placeholder="maximo" aria-describedby="basic-addon1" />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col col-md-6 mb-3">
+                  <label>Valor do objeto</label>
+                  <input type="number" class="form-control" name="object_value_min" value="0" placeholder="minimo" aria-describedby="basic-addon1" />
+                </div>
+                <div class="col col-md-6 mb-3">
+                  <label>&nbsp;</label>
+                  <input type="number" class="form-control" name="object_value_max" value="0" placeholder="maximo" aria-describedby="basic-addon1" />
+                </div>
+              </div>
+
+              <div class="row justify-content-center p-3 mt-2">
+                <button class="btn btn-primary btn-block" type="submit">Search</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="col ml-4 p-2">
+
+        {% for knapsack in knapsacks %}
+          <table class="table table-striped border table-bordered " style="font-size: 14px;margin-bottom: 4%;">
+            <thead>
+              <tr>
+                <th scope="col">Knap_1</th>
+                {% for i in range(0, knapsack.objects|length) %}
+                <th scope="col">OBJ_{{ i + 1 }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            
+            <tbody>
+              <tr>
+                <th scope="row">Peso</th>
+                {% for obj in knapsack.objects %}
+                <td>{{ '%0.2f' % obj.weight|float }}</td>
+                {% endfor %}
+              </tr>
+              <th scope="row">Valor</th>
+                {% for obj in knapsack.objects %}
+                <td>{{ '%0.2f' % obj.value|float }}</td>
+                {% endfor %}
+              </tr>
+            </tbody>
+          </table>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+      integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
