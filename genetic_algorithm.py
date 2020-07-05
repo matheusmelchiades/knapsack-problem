@@ -61,6 +61,7 @@ class Knapsack:
         capacity = settings.knapsack['capacity']
         _, w_max = settings.knapsack['weight']
 
+        self.candidate = False
         self.capacity = capacity
         self.weight_max = w_max
         self.weight = 0
@@ -71,6 +72,12 @@ class Knapsack:
 
         if len(self.objects) < self.capacity:
             self.weight += obj.weight
+
+            if self.weight <= self.weight_max:
+                self.candidate = True
+            else:
+                self.candidate = False
+
             self.objects.append(obj)
         pass
 
@@ -94,6 +101,7 @@ class Knapsack:
             f'\n**** Knapsack {id(self)} ****\n' + \
             '*' * 34 + \
             f'\n\n OBJECTS = {len(self.objects)}' + \
+            f'\n CANDIDATE = {self.candidate}' + \
             f'\n WEIGHT = {w_sum}' + \
             f'\n VALUE  = {v_sum}\n\n'
 
@@ -108,11 +116,11 @@ class DNA:
         self.population = []
 
     def generate_poulation(self):
-        '''
+        """
             Generate news individuals if not exists no one inviduals on populate.
             If has some individuals from last generation, the new generation will receive
             the same and complete rest of the population with randable individuals. 
-        '''
+        """
 
         new_population = []
         population_size = int(self.chromosomes - len(self.population))
@@ -131,18 +139,18 @@ class DNA:
         pass
 
     def fitness(self):
-        '''
+        """
             Calculate what invidual is best and sort by best
-        '''
+        """
 
         self.population.sort(key=lambda x: x.weight - x.weight_max)
 
         pass
 
     def select_bests_parent(self):
-        '''
+        """
             Splice population by score attributed on fitness
-        '''
+        """
 
         pop_length = len(self.population)
         percent_decrease = len(self.population) * self.generation_interval
@@ -156,6 +164,8 @@ class DNA:
         pass
 
     def crossover(self):
+        """
+        """
 
         changed = []
         parents_size = int(len(self.population) / 2)

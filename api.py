@@ -5,6 +5,8 @@ from forms import KnapsackForm
 
 app = Flask(__name__)
 
+settings = Settings()
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -12,20 +14,17 @@ def index():
     data = []
 
     if request.method == 'POST':
-        print('ENTRO')
         form = KnapsackForm(request.form)
-
-        settings = Settings()
 
         settings.set_knapsack_obj_values(form.get_knapsack_obj_values())
         settings.set_knapsack_values(form.get_knapsack_values())
         settings.set_dna_values(form.get_dna_values())
-        print(settings)
+
         dna = DNA(settings)
         dna.reproduction()
         data = dna.population
 
-    return render_template('index.html', knapsacks=data)
+    return render_template('index.html', knapsacks=data, settings=settings)
 
 
 if __name__ == '__main__':

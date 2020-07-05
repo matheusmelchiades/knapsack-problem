@@ -6,11 +6,10 @@
 class KnapsackForm():
 
     def __init__(self, form):
-        print(form)
         self.dna_chromosomes = int(form['dna_chromosomes'] or 0)
         self.interactions = int(form['interactions'] or 0)
-        self.generation_interval = int(form['generation_interval'] or 0)
-        self.mutation_rate = int(form['mutation_rate'] or 0)
+        self.generation_interval = float(form['generation_interval'] or 0.0)
+        self.mutation_rate = float(form['mutation_rate'] or 0.0)
         self.knapsack_weight = int(form['knapsack_weight'] or 0)
         self.object_weight_min = int(form['object_weight_min'] or 0)
         self.object_weight_max = int(form['object_weight_max'] or 0)
@@ -36,6 +35,6 @@ class KnapsackForm():
         return {
             'chromosomes': self.dna_chromosomes,
             'interactions': self.interactions,
-            'generation_interval': float(f'0.{self.generation_interval}'),
-            'mutation_rate': float(f'0.{self.mutation_rate}')
+            'generation_interval': self.generation_interval,
+            'mutation_rate': self.mutation_rate
         }
