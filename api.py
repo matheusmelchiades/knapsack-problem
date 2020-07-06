@@ -11,10 +11,11 @@ settings = Settings()
 @app.route('/', methods=['GET', 'POST'])
 def index():
 
+    form = KnapsackForm(settings)
     data = []
 
     if request.method == 'POST':
-        form = KnapsackForm(request.form)
+        form.set_from_request(request.form)
 
         settings.set_knapsack_obj_values(form.get_knapsack_obj_values())
         settings.set_knapsack_values(form.get_knapsack_values())
@@ -24,7 +25,7 @@ def index():
         dna.reproduction()
         data = dna.population
 
-    return render_template('index.html', knapsacks=data, settings=settings)
+    return render_template('index.html', population=data, form=form)
 
 
 if __name__ == '__main__':

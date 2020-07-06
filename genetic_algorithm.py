@@ -1,5 +1,7 @@
 #!/bin/python3
 from random import uniform, randint, choices, randrange
+from tabulate import tabulate
+from math import inf
 
 
 class Settings:
@@ -7,20 +9,23 @@ class Settings:
     def __init__(self):
 
         self.knapsack_obj = {
-            'weight': (0, 80),
-            'value': (0, 100)
+            'weight': (1, 10),
+            'value': (1, 10)
         }
 
         self.knapsack = {
             'capacity': 10,
-            'weight': (0, 120)
+            'weight': (0, 80)
         }
 
         self.DNA = {
-            'chromosomes': 10,  # population size
-            'interactions': 800,
+            'chromosomes': 30,  # population size
+            'interactions': 100,
             'generation_interval': 0.6,
-            'mutation_rate': 0.3
+            'crossover_point': 3,
+            'mutation_rate': 0.2,
+            'penalty_rate': 5,
+            'available_rate': 2
         }
 
     def set_knapsack_obj_values(self, values={}):
@@ -38,12 +43,13 @@ class Settings:
 
 class Object:
 
-    def __init__(self, settings: Settings):
-        w_min, w_max = settings.knapsack_obj['weight']
-        v_min, v_max = settings.knapsack_obj['value']
+    def __init__(self, weight=(0.0, 0.0), value=(0.0, 0.0)):
+        w_min, w_max = weight
+        v_min, v_max = value
 
         self.weight = uniform(w_min, w_max)
         self.value = uniform(v_min, v_max)
+        self.weight_value = (1 * self.value) / self.weight
 
         pass
 
@@ -57,36 +63,42 @@ class Object:
 
 class Knapsack:
 
-    def __init__(self, settings: Settings):
-        capacity = settings.knapsack['capacity']
-        _, w_max = settings.knapsack['weight']
+    def __init__(self, capacity=10, weight=(0.0, 0.0)):
+        _, w_max = weight
 
-        self.candidate = False
         self.capacity = capacity
         self.weight_max = w_max
         self.weight = 0
+        self.value = 0
         self.objects = []
         pass
 
     def append_obj(self, obj):
 
-        if len(self.objects) < self.capacity:
-            self.weight += obj.weight
+        size_add = len(self.objects) + 1
 
-            if self.weight <= self.weight_max:
-                self.candidate = True
-            else:
-                self.candidate = False
-
+        if size_add <= self.capacity:
             self.objects.append(obj)
+
+            self.weight += obj.weight
+            self.value += obj.value
+
         pass
 
     def append_objects(self, objs=[]):
 
-        if len(self.objects) < self.capacity:
+        size_add = len(self.objects) + len(objs)
+
+        if size_add <= self.capacity:
+            self.objects = self.objects + objs
+
+            self.weight = 0
+            self.value = 0
+
             for o in objs:
                 self.weight += o.weight
-            self.objects = self.objects + objs
+                self.value += o.value
+
         pass
 
     def __str__(self):
@@ -101,9 +113,71 @@ class Knapsack:
             f'\n**** Knapsack {id(self)} ****\n' + \
             '*' * 34 + \
             f'\n\n OBJECTS = {len(self.objects)}' + \
-            f'\n CANDIDATE = {self.candidate}' + \
             f'\n WEIGHT = {w_sum}' + \
             f'\n VALUE  = {v_sum}\n\n'
+
+
+class Individual:
+
+    def __init__(self, settings: Settings):
+        self.settings = settings
+        self.score = 0.0
+        self.penalty = 0
+        self.available = 0
+        self.individual: Knapsack = None
+        self.adept = False
+        self.genomes_size = 0
+
+    def start_values(self):
+        knapsack_settings = self.settings.knapsack
+        object_settings = self.settings.knapsack_obj
+
+        k = Knapsack(knapsack_settings['capacity'],
+                     knapsack_settings['weight'])
+
+        for obj in range(0, k.capacity):
+            o = Object(object_settings['weight'], object_settings['value'])
+            k.append_obj(o)
+
+        self.individual = k
+        self.genomes_size = knapsack_settings['capacity']
+
+        pass
+
+    def attribute_score(self):
+
+        if self.individual.weight < self.individual.weight_max:
+            self.score = self.individual.value
+        else:
+            self.score = abs(self.individual.weight_max -
+                             self.individual.weight)
+        pass
+
+    def validate(self):
+        penalty_rate = self.settings.DNA['penalty_rate']
+        available_rate = self.settings.DNA['available_rate']
+
+        if self.individual.weight < self.individual.weight_max:
+            self.available += 1
+
+        else:
+
+            if self.penalty >= penalty_rate:
+                self.score = 1000000
+                self.penalty = 0
+
+            else:
+                self.penalty += 1
+
+        if self.available >= available_rate and not self.adept:
+            self.adept = True
+
+    def get_genomes(self, start, end):
+        return self.individual.objects[start:end]
+
+    def set_genomes(self, start, end, genomes):
+        self.individual.objects[start:end] = genomes
+        pass
 
 
 class DNA:
@@ -113,13 +187,16 @@ class DNA:
         self.chromosomes = settings.DNA['chromosomes']
         self.generation_interval = settings.DNA['generation_interval']
         self.mutation_rate = settings.DNA['mutation_rate']
+        self.crossover_point = settings.DNA['crossover_point']
+        self.penalty_rate = settings.DNA['penalty_rate']
         self.population = []
+        self.adepts = 0
 
     def generate_poulation(self):
         """
             Generate news individuals if not exists no one inviduals on populate.
             If has some individuals from last generation, the new generation will receive
-            the same and complete rest of the population with randable individuals. 
+            the same and complete rest of the population with randable individuals.
         """
 
         new_population = []
@@ -127,23 +204,24 @@ class DNA:
 
         for _ in range(0, population_size):
 
-            k = Knapsack(self.settings)
+            individual = Individual(self.settings)
 
-            for obj in range(0, k.capacity):
-                o = Object(self.settings)
-                k.append_obj(o)
+            individual.start_values()
 
-            new_population.append(k)
+            new_population.append(individual)
 
         self.population = self.population + new_population
+
         pass
 
     def fitness(self):
         """
             Calculate what invidual is best and sort by best
         """
+        for individuals in self.population:
+            individuals.attribute_score()
 
-        self.population.sort(key=lambda x: x.weight - x.weight_max)
+        self.population.sort(key=lambda x: x.score)
 
         pass
 
@@ -151,7 +229,6 @@ class DNA:
         """
             Splice population by score attributed on fitness
         """
-
         pop_length = len(self.population)
         percent_decrease = len(self.population) * self.generation_interval
         diff_fractional = int(pop_length - percent_decrease)
@@ -166,37 +243,30 @@ class DNA:
     def crossover(self):
         """
         """
-
         changed = []
-        parents_size = int(len(self.population) / 2)
 
-        for i in range(0, parents_size):
-            rand_max = int(len(self.population) - 1)
+        parents_half_size = int(len(self.population) / 2)
 
-            a = randint(0, rand_max)
-            b = randint(0, rand_max)
+        for a, b in zip(self.population[:parents_half_size], self.population[parents_half_size:]):
 
-            while a == b:
-                b = randint(0, rand_max)
+            split_size = int(a.genomes_size / self.crossover_point)
 
-            individual_a = self.population[a]
-            individual_b = self.population[b]
+            salt = False
+            for start in range(0, a.genomes_size, split_size):
+                end = start + split_size
 
-            index_del_a = a if a < (len(self.population) - 1) else -1
-            index_del_b = b if b < (len(self.population) - 1) else -1
+                if salt:
+                    pass
 
-            del self.population[index_del_a]
-            del self.population[index_del_b]
+                salt = not salt
 
-            genomes = choices(individual_a.objects + individual_b.objects,
-                              k=self.settings.knapsack['capacity'])
+                genomes_a = a.get_genomes(start, end)
+                genomes_b = b.get_genomes(start, end)
 
-            k = Knapsack(self.settings)
-            k.append_objects(genomes)
+                a.set_genomes(start, end, genomes_b)
+                b.set_genomes(start, end, genomes_a)
 
-            changed.append(k)
-
-            parents_size -= 2
+            changed = changed + [a, b]
 
         self.population = changed
         pass
@@ -207,7 +277,7 @@ class DNA:
         individuals_choiced = choices(self.population, k=pop_mutation_length)
 
         for individuals in individuals_choiced:
-            obj_length = len(individuals.objects)
+            obj_length = len(individuals.individual.objects)
             genomes_rand_to_change = randint(0, obj_length)
             indexes_rand = []
 
@@ -218,9 +288,32 @@ class DNA:
                 indexes_rand = list(set(indexes_rand))
 
             for i in indexes_rand:
-                individuals.objects[i] = Object(self.settings)
+                individuals.individual.objects[i] = Object(
+                    self.settings.knapsack_obj['weight'], self.settings.knapsack_obj['value'])
 
         pass
+
+    def conception_new_population(self):
+        """
+        """
+        self.population.sort(key=lambda x: x.score)
+
+        for individual in self.population:
+            individual.validate()
+
+        pass
+
+    def count_adepts(self):
+        count = 0
+
+        for individual in self.population:
+            if individual.adept:
+                count += 1
+
+        self.adepts = count
+
+    def get_individuos(self):
+        return [i.individual for i in self.population]
 
     def reproduction(self):
         interactions = self.settings.DNA['interactions']
@@ -231,7 +324,63 @@ class DNA:
             self.select_bests_parent()
             self.crossover()
             self.mutation()
+            self.conception_new_population()
 
-        self.population.sort(key=lambda x: x.weight - x.weight_max)
+        self.population.sort(key=lambda x: x.individual.weight)
+        self.count_adepts()
+        pass
 
-        return []
+
+def print_population(population):
+    from tabulate import tabulate
+
+    data = [
+        [p.adept, p.available, p.penalty, p.score] for p in population
+    ]
+
+    print(tabulate(data, headers=['adept', 'available', 'penalty', 'score'],
+                   showindex='always',
+                   tablefmt='fancy_grid'))
+    pass
+
+
+def print_individuals(population):
+
+    data = [
+        [p.individual.weight, p.individual.value, len(p.individual.objects), p.adept] for p in population
+    ]
+
+    print(tabulate(data, headers=['weight', 'value', 'objects', 'adept'],
+                   showindex='always',
+                   tablefmt='fancy_grid'))
+
+    pass
+
+
+def print_object(knapsack, weight=True, value=True, w_value=True):
+
+    data = []
+    weight = [o.weight for o in knapsack.objects]
+    value = [o.value for o in knapsack.objects]
+    weight_value = [o.weight_value for o in knapsack.objects]
+
+    headers = [
+        f'obj_{i + 1}' for i in range(0, len(knapsack.objects))
+    ]
+
+    if weight:
+        data.append(['Weight'] + weight)
+
+    if value:
+        data.append(['Value'] + value)
+
+    if w_value:
+        data.append(['Weight value'] + weight_value)
+
+    print('\n')
+    print(tabulate(data, headers=headers, tablefmt='fancy_grid'))
+    pass
+
+
+if __name__ == "__main__":
+    dna = DNA(Settings()).reproduction()
