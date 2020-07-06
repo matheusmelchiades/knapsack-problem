@@ -383,4 +383,6 @@ def print_object(knapsack, weight=True, value=True, w_value=True):
 
 
 if __name__ == "__main__":
-    dna = DNA(Settings()).reproduction()
+    dna = DNA(Settings())
+    dna.reproduction()
+    print_individuals(dna.population)
